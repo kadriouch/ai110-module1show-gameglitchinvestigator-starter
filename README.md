@@ -37,4 +37,20 @@ It wrote the code, ran away, and now the game is unplayable.
 
 ## 🚀 Stretch Features
 
+### Challenge 2: Feature Expansion via Agent Mode
+
+Two new features were implemented using Claude Agent Mode:
+
+**1. High Score Tracker**
+- A new `high_scores.py` module saves the best score per difficulty to `high_scores.json`
+- The sidebar displays current high scores for Easy, Normal, and Hard
+- On a win, the app checks if the score beats the record and shows "🏆 New high score!"
+
+**2. Guess History Visualization**
+- After a game ends (win or loss), a `📊 Guess History` section appears
+- Each guess is shown with a progress bar indicating how close it was to the secret
+- Labels show direction (🔴 Too High / 🔵 Too Low / ✅ Correct) and exact distance
+
+Claude Agent Mode contributed by suggesting `json` for file storage simplicity, recommending `st.progress()` for the closeness visualization, and placing high scores in the sidebar as `st.metric` components for a clean display. All suggestions were verified by running the app and confirming the UI behaved as expected.
+
 - [ ] [If you choose to complete Challenge 4, insert a screenshot of your Enhanced Game UI here]

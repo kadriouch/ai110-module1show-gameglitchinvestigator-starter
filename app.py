@@ -3,6 +3,9 @@ import streamlit as st
 # FIX: Refactored all game logic out of app.py into logic_utils.py using Claude Agent mode.
 # Verified by importing and running pytest — all 8 tests pass.
 from logic_utils import get_range_for_difficulty, parse_guess, check_guess, update_score
+# FEATURE (Challenge 2): High score tracker added via Agent Mode.
+# high_scores.py handles reading/writing per-difficulty best scores to high_scores.json.
+from high_scores import load_high_scores, save_high_score
 
 st.set_page_config(page_title="Glitchy Guesser", page_icon="🎮")
 
@@ -28,6 +31,16 @@ low, high = get_range_for_difficulty(difficulty)
 
 st.sidebar.caption(f"Range: {low} to {high}")
 st.sidebar.caption(f"Attempts allowed: {attempt_limit}")
+
+# FEATURE (Challenge 2): Show high scores per difficulty in the sidebar.
+# Claude Agent Mode suggested placing this near the top of the sidebar so it's
+# always visible, and using st.sidebar.metric for a clean display.
+st.sidebar.divider()
+st.sidebar.subheader("🏆 High Scores")
+high_scores = load_high_scores()
+for diff in ["Easy", "Normal", "Hard"]:
+    best = high_scores.get(diff, "—")
+    st.sidebar.metric(label=diff, value=best)
 
 if "secret" not in st.session_state:
     st.session_state.secret = random.randint(low, high)
@@ -85,6 +98,34 @@ if new_game:
     st.success("New game started.")
     st.rerun()
 
+# FEATURE (Challenge 2): Guess History visualization.
+# When a game is over (won or lost), show how close each guess was to the secret.
+# Claude Agent Mode suggested using st.progress() with a normalized distance value,
+# and color-coding rows by direction (too high = red, too low = blue, correct = green).
+if st.session_state.status != "playing" and st.session_state.history:
+    st.subheader("📊 Guess History")
+    secret = st.session_state.secret
+    range_size = high - low
+
+    for i, guess in enumerate(st.session_state.history):
+        if not isinstance(guess, int):
+            continue
+        distance = abs(guess - secret)
+        closeness = max(0.0, 1.0 - distance / range_size)
+
+        if guess == secret:
+            label = f"Guess {i+1}: {guess} ✅ Correct!"
+            color = "normal"
+        elif guess > secret:
+            label = f"Guess {i+1}: {guess} 🔴 Too High (off by {distance})"
+            color = "normal"
+        else:
+            label = f"Guess {i+1}: {guess} 🔵 Too Low (off by {distance})"
+            color = "normal"
+
+        st.write(label)
+        st.progress(closeness)
+
 if st.session_state.status != "playing":
     if st.session_state.status == "won":
         st.success("You already won. Start a new game to play again.")
@@ -117,10 +158,15 @@ if submit:
         if outcome == "Win":
             st.balloons()
             st.session_state.status = "won"
-            st.success(
+            # FEATURE (Challenge 2): Save high score on win.
+            is_new_record = save_high_score(difficulty, st.session_state.score)
+            win_msg = (
                 f"You won! The secret was {st.session_state.secret}. "
                 f"Final score: {st.session_state.score}"
             )
+            if is_new_record:
+                win_msg += " 🏆 New high score!"
+            st.success(win_msg)
         else:
             if st.session_state.attempts >= attempt_limit:
                 st.session_state.status = "lost"
